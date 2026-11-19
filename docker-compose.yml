@@ -1,0 +1,14 @@
+services:
+  api:
+    build: .
+    ports: ["8000:8000"]
+    volumes:
+      - ./data:/app/data:ro
+      - ./outputs:/app/outputs
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    ports: ["5173:5173"]
+    volumes: ["./frontend:/app"]
+    depends_on: [api]
