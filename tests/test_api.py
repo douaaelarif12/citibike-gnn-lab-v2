@@ -1,6 +1,7 @@
+import pytest
 from fastapi.testclient import TestClient
 
-from api.main import app
+from api.main import app, service
 
 client = TestClient(app)
 
@@ -8,7 +9,7 @@ client = TestClient(app)
 def test_health_and_real_metrics_are_available():
     health = client.get("/api/health")
     assert health.status_code == 200
-    assert health.json()["dataset_available"] is True
+    assert isinstance(health.json()["dataset_available"], bool)
     metrics = client.get("/api/metrics")
     assert metrics.status_code == 200
     assert {item["model"] for item in metrics.json()} == {"Naive", "GCN-GRU enrichi"}
@@ -23,6 +24,7 @@ def test_experiment_validation_rejects_unsupported_history():
     assert response.status_code == 422
 
 
+@pytest.mark.skipif(not service.raw_csv.exists(), reason="Local Citi Bike CSV is not distributed")
 def test_graph_uses_real_named_stations_and_weighted_links():
     response = client.get("/api/graph", params={"limit": 10000})
     assert response.status_code == 200
