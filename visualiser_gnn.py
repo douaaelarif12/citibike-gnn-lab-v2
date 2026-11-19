@@ -30,8 +30,8 @@ def main():
     data = load_data(CSV)
     X, _, stations, hours = build_activity(data, '2026-04-01 00:00:00', '2026-04-30 23:00:00')
 
-    # Charge uniquement un checkpoint créé localement par ton propre main.py.
-    checkpoint = torch.load(CHECKPOINT, map_location='cpu', weights_only=False)
+    # Le mode restreint évite l'exécution d'objets Python arbitraires.
+    checkpoint = torch.load(CHECKPOINT, map_location='cpu', weights_only=True)
     history = int(checkpoint['history'])
     if list(stations) != list(checkpoint['station_ids']):
         sys.exit('ERREUR : les stations du CSV ne correspondent pas au checkpoint.')
@@ -80,7 +80,9 @@ def main():
     ax.plot(time_test, actual_total, label='Réel', linewidth=2)
     ax.plot(time_test, pred_total, label='GCN-GRU', alpha=.85)
     ax.set(title='Activité horaire totale : réel vs GCN-GRU', ylabel='Départs + arrivées / heure', xlabel='Date et heure')
-    ax.legend(); fig.autofmt_xdate(); fig.tight_layout()
+    ax.legend()
+    fig.autofmt_xdate()
+    fig.tight_layout()
     fig.savefig(FIGURES / '01_reel_vs_gnn.png', dpi=160)
     plt.close(fig)
 
@@ -90,7 +92,9 @@ def main():
     ax.plot(time_test, pred_total, label='GCN-GRU', alpha=.8)
     ax.plot(time_test, naive_total, label='Naïf', alpha=.7)
     ax.set(title='Comparaison sur la période de test', ylabel='Mouvements / heure', xlabel='Date et heure')
-    ax.legend(); fig.autofmt_xdate(); fig.tight_layout()
+    ax.legend()
+    fig.autofmt_xdate()
+    fig.tight_layout()
     fig.savefig(FIGURES / '02_comparaison_modeles.png', dpi=160)
     plt.close(fig)
 
@@ -103,7 +107,8 @@ def main():
         ax.set(ylabel='Mouvements', title=f'Station {stations[j]}')
         ax.legend(loc='upper right')
     axes[-1].set_xlabel('Date et heure')
-    fig.autofmt_xdate(); fig.tight_layout()
+    fig.autofmt_xdate()
+    fig.tight_layout()
     fig.savefig(FIGURES / '03_stations_actives.png', dpi=160)
     plt.close(fig)
 
