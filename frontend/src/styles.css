@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #EFFCF7;
+  background: #0B1115;
+  color-scheme: dark;
+  font-family: 'DM Sans', sans-serif;
+  --page-bg: #0B1115;
+  --page-glow: rgba(16,185,129,.12);
+  --panel-bg: rgba(26,41,44,.8);
+  --panel-border: rgba(255,255,255,.1);
+  --text-primary: #EFFCF7;
+  --text-muted: #94a3b8;
+  --chart-grid: rgba(255,255,255,.07);
+  --chart-axis: #71837f;
+  --tooltip-bg: #102023;
+  --tooltip-border: rgba(255,255,255,.1);
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background:
+  radial-gradient(circle at 75% 0%, var(--page-glow), transparent 32rem), var(--page-bg); color: var(--text-primary); transition: background-color .25s ease, color .25s ease; }
+button, input, select { font: inherit; }
+.panel { @apply rounded-2xl border shadow-glow backdrop-blur; background: var(--panel-bg); border-color: var(--panel-border); }
+.eyebrow { @apply text-[11px] font-bold uppercase tracking-[.22em] text-mint/70; }
+.title { color: var(--text-primary); font-family: Manrope, sans-serif; @apply text-3xl font-bold tracking-[-.04em] md:text-4xl; }
+.leaflet-container { background: #18272b; font-family: inherit; }
+.graph-map .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(.82) contrast(.96) saturate(.5); }
+.graph-map .leaflet-control-attribution { display: block; border-radius: 8px 0 0 0; background: rgba(11,17,21,.88); color: #b8c7c3; font-size: 10px; padding: 3px 7px; }
+.graph-map .leaflet-control-attribution a { color: #75E3CF; text-decoration: none; }
+.graph-map .leaflet-popup-content-wrapper, .graph-map .leaflet-popup-tip { background: #142225; color: #EFFCF7; }
+.graph-map .leaflet-popup-content-wrapper { border: 1px solid rgba(117,227,207,.24); box-shadow: 0 16px 40px rgba(0,0,0,.42); }
+.graph-map .leaflet-popup-content { margin: 14px 16px; }
+.station-popup { display: grid; min-width: 220px; gap: 5px; line-height: 1.38; }
+.station-popup strong { color: #75E3CF; font-size: 15px; }
+.station-popup span { color: #d5e3df; }
+.station-popup .station-code { width: max-content; border-radius: 999px; background: rgba(16,185,129,.15); padding: 2px 8px; color: #75E3CF; font-size: 11px; font-weight: 700; }
+.station-popup .station-popup-muted { margin-top: 3px; border-top: 1px solid rgba(255,255,255,.1); padding-top: 6px; color: #8fa5a0; font-size: 11px; }
+::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: #28413f; border-radius: 10px; }
+
+.theme-switch { width: 36px; height: 20px; padding: 2px; border-radius: 999px; background: rgba(148,163,184,.28); transition: background .2s ease; }
+.theme-switch-knob { display: block; width: 16px; height: 16px; border-radius: 50%; background: #EFFCF7; box-shadow: 0 2px 5px rgba(0,0,0,.2); transition: transform .2s ease; }
+html[data-theme='light'] {
+  color: #162a26;
+  background: #dce7e3;
+  color-scheme: light;
+  --page-bg: #dce7e3;
+  --page-glow: rgba(16,185,129,.12);
+  --panel-bg: rgba(237,244,241,.9);
+  --panel-border: rgba(15,73,61,.16);
+  --text-primary: #162a26;
+  --text-muted: #4f655f;
+  --chart-grid: rgba(15,73,61,.15);
+  --chart-axis: #526a63;
+  --tooltip-bg: #e5eeea;
+  --tooltip-border: rgba(15,73,61,.2);
+}
+html[data-theme='light'] .sidebar { background: rgba(207,222,216,.97); border-color: rgba(15,73,61,.17); box-shadow: 12px 0 40px rgba(30,70,61,.09); }
+html[data-theme='light'] .mobile-menu { background: #d1dfda; border-color: rgba(15,73,61,.18); }
+html[data-theme='light'] [class*='text-slate-'] { color: #4e625c; }
+html[data-theme='light'] [class*='border-white'] { border-color: rgba(15,73,61,.16); }
+html[data-theme='light'] [class*='bg-white'] { background-color: rgba(16,74,61,.07); }
+html[data-theme='light'] [class*='bg-black'] { background-color: rgba(16,74,61,.08); }
+html[data-theme='light'] .hover\:text-white:hover { color: #0d6f58; }
+html[data-theme='light'] .theme-switch { background: #10B981; }
+html[data-theme='light'] .theme-switch-knob { transform: translateX(16px); }
+html[data-theme='light'] .status-card { background: rgba(16,124,92,.09); }
+html[data-theme='light'] input, html[data-theme='light'] select { color: #162a26; }
+html[data-theme='light'] option { background: #dfe9e5; color: #162a26; }
+html[data-theme='light'] .graph-map .leaflet-popup-content-wrapper, html[data-theme='light'] .graph-map .leaflet-popup-tip { background: #142225; color: #EFFCF7; }
