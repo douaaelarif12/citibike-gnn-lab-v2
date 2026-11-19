@@ -179,4 +179,4 @@ An end-to-end spatio-temporal forecasting platform combining PyTorch Geometric, 
 
 ## License and data
 
-Add a project license before public distribution. Follow Citi Bike's data terms and do not publish local checkpoints or raw datasets without verifying redistribution rights.
+The source code is available under the [MIT License](LICENSE). Follow Citi Bike's data terms and do not publish local checkpoints or raw datasets without verifying redistribution rights.
