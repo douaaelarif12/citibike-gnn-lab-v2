@@ -4,18 +4,17 @@
 
 CitiBike GNN Lab v2 is an applied research platform for one-hour-ahead station-demand forecasting. It combines a leakage-safe PyTorch/PyTorch Geometric experiment pipeline, a FastAPI artifact and training API, and a React analytics workspace.
 
-> The project does not claim that a GNN automatically beats a simple baseline. On the controlled reference split, GCN–GRU has a slightly better RMSE while persistence has a better MAE.
+> The project does not claim that a GNN automatically beats a simple baseline. On the controlled split, the 24-hour seasonal baseline currently performs best on both MAE and RMSE.
 
 ## Verified reference results
 
-These values come from `outputs/reproducible_comparison.csv`. The original checkpoint remains at `outputs/models/gcn_gru_retrained.pth`.
+These values come from the aligned 108-hour test export in `outputs/extended_comparison.csv`. The original checkpoint remains local at `outputs/models/gcn_gru_retrained.pth` and is not distributed.
 
 | Model | MAE | RMSE |
 |---|---:|---:|
-| Naive persistence | **0.8377915** | 2.1382875 |
-| GCN–GRU + calendar | 0.9886128 | **2.1170790** |
-
-Notebook metrics use a different cutoff and are not mixed into this controlled comparison.
+| Naive persistence | 0.8377915 | 2.1382875 |
+| Seasonal persistence, 24 h | **0.8158865** | **2.0505340** |
+| GCN–GRU + calendar | 0.9886128 | 2.1170790 |
 
 ## Architecture
 
@@ -57,6 +56,14 @@ The local reference dataset is Jersey City Citi Bike trip data for April 2026. R
 data/raw/JC-202604-citibike-tripdata.csv
 ```
 
+Download the official archive, verify its SHA-256 hash, extract it safely, and verify the CSV:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\download_data.py
+```
+
+Official source: `https://s3.amazonaws.com/tripdata/JC-202604-citibike-tripdata.zip`.
+
 ## Windows 11 installation
 
 Python 3.11 is recommended. PyTorch is not available for every newer Python release.
@@ -66,6 +73,7 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe scripts\download_data.py
 cd frontend
 npm install
 cd ..
@@ -79,6 +87,7 @@ cd frontend
 npm run lint
 npm test
 npm run build
+npm run test:e2e
 ```
 
 Start both applications and open the product in Google Chrome:
@@ -104,7 +113,7 @@ Application: `http://127.0.0.1:5173`
 .\.venv\Scripts\python.exe scripts\run_experiment.py --name gcn_gru_h12_huber --history 12 --loss huber --graph weighted --epochs 20 --seed 42
 ```
 
-The Experiments Lab submits the same real runner through a serialized background queue. It never displays planned configurations as completed runs. New checkpoints use a configuration/seed name and do not overwrite the original.
+The Experiments Lab submits the same real runner through a serialized background queue. It never displays planned configurations as completed runs. New checkpoints use a configuration/seed name and do not overwrite the original. Public deployments are read-only by default: `POST /api/experiments` is enabled only when a server-side `EXPERIMENT_API_KEY` is configured.
 
 ## API
 
@@ -116,16 +125,18 @@ The Experiments Lab submits the same real runner through a serialized background
 | `GET /api/models` | Available local checkpoints |
 | `GET /api/predictions` | Aligned hourly reference predictions |
 | `GET /api/stations/{id}` | Local station evaluation |
-| `GET/POST /api/experiments` | Experiment history / background run |
+| `GET /api/stations/{id}/predictions` | Real 108-hour station forecast series |
+| `GET /api/experiments` | Recorded experiment history |
+| `POST /api/experiments` | Protected background run; disabled publicly by default |
 | `GET /api/downloads/{file}` | Allow-listed result exports |
 
 ## Interactive workspace
 
 - **Graph Explorer:** real station identifiers, names and averaged coordinates from the April trip file; weighted directed relations; minimum-trip filtering; spatial summaries; frequent-relation ranking; station search, map centering and interactive popups. OpenStreetMap attribution remains visible.
-- **Demand Forecasting:** aggregate observed, GCN–GRU and persistence series over selectable 24-hour, 48-hour or complete test windows. The interface explicitly reports that no station-level hourly prediction artifact is available.
+- **Demand Forecasting:** network-wide or per-station observed, GCN–GRU, persistence and 24-hour seasonal series over selectable 24-hour, 48-hour or complete test windows.
 - **Model Comparison:** controlled MAE/RMSE comparison with metric-specific winners and measured deltas.
-- **Station Analytics:** real station selection, coordinates, activity and local MAE comparison for the shared final test window.
-- **Experiments Lab:** validated configuration of history, architecture, loss, graph, epochs, patience and seed, submitted to the serialized real training queue.
+- **Station Analytics:** real station selection, coordinates, activity, local MAE comparison and 108-hour forecast series.
+- **Experiments Lab:** validated configuration and real run history; remote launches are disabled on public read-only deployments.
 
 ## Product screenshots
 
@@ -175,7 +186,7 @@ backups/              local pre-refactor snapshot
 
 ## Portfolio summary
 
-An end-to-end spatio-temporal forecasting platform combining PyTorch Geometric, GCN–GRU modeling, controlled baselines, experiment tracking, FastAPI, and an interactive React geospatial dashboard. The reference GCN–GRU improves RMSE slightly over persistence, while persistence remains stronger on MAE—an honest result that motivates deeper peak and station-level analysis.
+An end-to-end spatio-temporal forecasting platform combining PyTorch Geometric, GCN–GRU modeling, controlled baselines, experiment tracking, FastAPI, and an interactive React geospatial dashboard. The 24-hour seasonal baseline currently outperforms both GCN–GRU and naive persistence—an honest result that motivates multi-month data, contextual features, and stronger peak modeling.
 
 ## License and data
 

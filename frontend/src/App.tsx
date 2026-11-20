@@ -1,8 +1,20 @@
 import { Activity, Beaker, Bike, ChartNoAxesCombined, CircleHelp, GitBranch, Map, Menu, Moon, Network, Sun, X } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
-import { About, Experiments, Forecasting, GraphExplorer, ModelComparison, Overview, StationAnalytics } from './pages'
+import { Loading } from './components'
 import { useTheme } from './theme'
+
+const page = <T extends keyof typeof import('./pages')>(name: T) => lazy(async () => {
+  const module = await import('./pages')
+  return { default: module[name] }
+})
+const Overview = page('Overview')
+const GraphExplorer = page('GraphExplorer')
+const Forecasting = page('Forecasting')
+const ModelComparison = page('ModelComparison')
+const StationAnalytics = page('StationAnalytics')
+const Experiments = page('Experiments')
+const About = page('About')
 
 const links = [
   ['/', 'Overview', Activity], ['/graph', 'Graph Explorer', Map], ['/forecast', 'Demand Forecasting', ChartNoAxesCombined],
@@ -25,6 +37,6 @@ export default function App() {
         <div className="status-card rounded-xl border border-emerald/20 bg-emerald/5 p-3"><div className="mb-2 flex items-center gap-2 text-xs text-mint"><span className="h-2 w-2 rounded-full bg-emerald shadow-[0_0_9px_#10B981]"/> Artifact-backed</div><p className="text-[11px] leading-4 text-slate-500">Metrics are read from reproducible local outputs.</p></div>
       </div>
     </aside>
-    <main className="min-w-0 p-5 pt-20 md:p-9 lg:p-12"><Routes><Route path="/" element={<Overview/>}/><Route path="/graph" element={<GraphExplorer/>}/><Route path="/forecast" element={<Forecasting/>}/><Route path="/models" element={<ModelComparison/>}/><Route path="/stations" element={<StationAnalytics/>}/><Route path="/experiments" element={<Experiments/>}/><Route path="/about" element={<About/>}/></Routes></main>
+    <main className="min-w-0 p-5 pt-20 md:p-9 lg:p-12"><Suspense fallback={<Loading/>}><Routes><Route path="/" element={<Overview/>}/><Route path="/graph" element={<GraphExplorer/>}/><Route path="/forecast" element={<Forecasting/>}/><Route path="/models" element={<ModelComparison/>}/><Route path="/stations" element={<StationAnalytics/>}/><Route path="/experiments" element={<Experiments/>}/><Route path="/about" element={<About/>}/></Routes></Suspense></main>
   </div>
 }

@@ -47,3 +47,5 @@ jobs:
         run: npm test
       - name: Production build
         run: npm run build
+      - name: Chrome interaction tests
+        run: npm run test:e2e
