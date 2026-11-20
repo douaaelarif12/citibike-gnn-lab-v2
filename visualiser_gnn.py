@@ -20,6 +20,16 @@ CHECKPOINT = ROOT / 'outputs' / 'models' / 'gcn_gru_retrained.pth'
 FIGURES = ROOT / 'outputs' / 'figures'
 
 
+def save_figure(fig, filename):
+    destination = FIGURES / filename
+    temporary = FIGURES / f'.{filename}.tmp.png'
+    try:
+        fig.savefig(temporary, dpi=160)
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def main():
     for p in (CSV, CHECKPOINT):
         if not p.exists():
@@ -42,6 +52,9 @@ def main():
     X_test = X_seq[val_end:].clone()
     y_test = y_seq[val_end:].numpy()
     naive = X_seq[val_end:, -1, :, :2].sum(-1).numpy()
+    seasonal_start = history + val_end - 24
+    seasonal_end = history + n - 24
+    seasonal = X[seasonal_start:seasonal_end, :, :2].sum(-1).numpy()
     mean = checkpoint['activity_mean']
     std = checkpoint['activity_std']
     X_test[..., :2] = (X_test[..., :2] - mean) / std
@@ -66,8 +79,10 @@ def main():
 
     mae, rmse = metrics(predicted, y_test)
     naive_mae, naive_rmse = metrics(naive, y_test)
+    seasonal_mae, seasonal_rmse = metrics(seasonal, y_test)
     print(f'    GCN-GRU : MAE={mae:.4f}, RMSE={rmse:.4f}')
     print(f'    Naïf    : MAE={naive_mae:.4f}, RMSE={naive_rmse:.4f}')
+    print(f'    Saisonnier 24 h : MAE={seasonal_mae:.4f}, RMSE={seasonal_rmse:.4f}')
 
     print('4/5 Création des figures et fichiers CSV...')
     plt.rcParams.update({'figure.figsize': (12, 5), 'axes.grid': True, 'grid.alpha': .2})
@@ -76,6 +91,7 @@ def main():
     actual_total = y_test.sum(axis=1)
     pred_total = predicted.sum(axis=1)
     naive_total = naive.sum(axis=1)
+    seasonal_total = seasonal.sum(axis=1)
     fig, ax = plt.subplots()
     ax.plot(time_test, actual_total, label='Réel', linewidth=2)
     ax.plot(time_test, pred_total, label='GCN-GRU', alpha=.85)
@@ -83,7 +99,7 @@ def main():
     ax.legend()
     fig.autofmt_xdate()
     fig.tight_layout()
-    fig.savefig(FIGURES / '01_reel_vs_gnn.png', dpi=160)
+    save_figure(fig, '01_reel_vs_gnn.png')
     plt.close(fig)
 
     # 2. Comparaison avec la baseline naïve
@@ -95,7 +111,7 @@ def main():
     ax.legend()
     fig.autofmt_xdate()
     fig.tight_layout()
-    fig.savefig(FIGURES / '02_comparaison_modeles.png', dpi=160)
+    save_figure(fig, '02_comparaison_modeles.png')
     plt.close(fig)
 
     # 3. Les 3 stations les plus actives sur la période de test
@@ -109,7 +125,7 @@ def main():
     axes[-1].set_xlabel('Date et heure')
     fig.autofmt_xdate()
     fig.tight_layout()
-    fig.savefig(FIGURES / '03_stations_actives.png', dpi=160)
+    save_figure(fig, '03_stations_actives.png')
     plt.close(fig)
 
     # 4. Erreur absolue moyenne par station (top 20 selon activité)
@@ -120,7 +136,7 @@ def main():
     ax.set_xticks(range(len(top20)), [str(stations[j]) for j in top20], rotation=75, ha='right')
     ax.set(title='MAE par station (20 stations les plus actives)', ylabel='MAE (mouvements)')
     fig.tight_layout()
-    fig.savefig(FIGURES / '04_erreurs_par_station.png', dpi=160)
+    save_figure(fig, '04_erreurs_par_station.png')
     plt.close(fig)
 
     pd.DataFrame({
@@ -128,7 +144,23 @@ def main():
         'reel_total': actual_total,
         'gcn_gru_total': pred_total,
         'naif_total': naive_total,
+        'saisonnier_24h_total': seasonal_total,
     }).to_csv(ROOT / 'outputs' / 'predictions_horaires_test.csv', index=False)
+
+    pd.DataFrame({
+        'timestamp': np.repeat(time_test.to_numpy(), len(stations)),
+        'station_id': np.tile(np.asarray(stations, dtype=str), len(time_test)),
+        'actual': y_test.reshape(-1),
+        'gcn_gru': predicted.reshape(-1),
+        'naive': naive.reshape(-1),
+        'seasonal_24h': seasonal.reshape(-1),
+    }).to_csv(ROOT / 'outputs' / 'predictions_stations_test.csv', index=False)
+
+    pd.DataFrame([
+        {'Modele': 'Naive', 'MAE': naive_mae, 'RMSE': naive_rmse},
+        {'Modele': 'Saisonnier 24 h', 'MAE': seasonal_mae, 'RMSE': seasonal_rmse},
+        {'Modele': 'GCN-GRU enrichi', 'MAE': mae, 'RMSE': rmse},
+    ]).to_csv(ROOT / 'outputs' / 'extended_comparison.csv', index=False)
 
     pd.DataFrame({
         'station_id': [str(s) for s in stations],
@@ -141,7 +173,7 @@ def main():
     for name in ['01_reel_vs_gnn.png', '02_comparaison_modeles.png',
                  '03_stations_actives.png', '04_erreurs_par_station.png']:
         print('  ', FIGURES / name)
-    print('CSV : outputs/predictions_horaires_test.csv et outputs/erreurs_par_station.csv')
+    print('CSV : prédictions agrégées, prédictions par station, métriques locales et comparaison étendue')
 
 if __name__ == '__main__':
     main()

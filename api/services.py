@@ -11,6 +11,7 @@ class ArtifactService:
         self.raw_csv = root / "data" / "raw" / "JC-202604-citibike-tripdata.csv"
         self._stations = None
         self._edges = None
+        self._station_predictions = None
 
     @staticmethod
     def _rows(path):
@@ -20,16 +21,37 @@ class ArtifactService:
             return list(csv.DictReader(stream))
 
     def comparisons(self):
-        rows = self._rows(self.outputs / "reproducible_comparison.csv")
+        extended = self.outputs / "extended_comparison.csv"
+        source = extended if extended.exists() else self.outputs / "reproducible_comparison.csv"
+        rows = self._rows(source)
         return [{"model": row["Modele"], "mae": float(row["MAE"]),
-                 "rmse": float(row["RMSE"]), "source": "reproducible_comparison.csv"}
+                 "rmse": float(row["RMSE"]), "source": source.name}
                 for row in rows]
 
     def predictions(self):
         rows = self._rows(self.outputs / "predictions_horaires_test.csv")
         return [{"timestamp": row["heure"], "actual": float(row["reel_total"]),
-                 "gcn_gru": float(row["gcn_gru_total"]), "naive": float(row["naif_total"])}
+                 "gcn_gru": float(row["gcn_gru_total"]), "naive": float(row["naif_total"]),
+                 "seasonal_24h": float(row["saisonnier_24h_total"])
+                 if row.get("saisonnier_24h_total") else None}
                 for row in rows]
+
+    def station_predictions(self, station_id=None):
+        if self._station_predictions is None:
+            rows = self._rows(self.outputs / "predictions_stations_test.csv")
+            grouped = defaultdict(list)
+            for row in rows:
+                grouped[row["station_id"]].append({
+                    "timestamp": row["timestamp"],
+                    "actual": float(row["actual"]),
+                    "gcn_gru": float(row["gcn_gru"]),
+                    "naive": float(row["naive"]),
+                    "seasonal_24h": float(row["seasonal_24h"]),
+                })
+            self._station_predictions = dict(grouped)
+        if station_id is None:
+            return self._station_predictions
+        return self._station_predictions.get(station_id, [])
 
     def station_errors(self):
         rows = self._rows(self.outputs / "erreurs_par_station.csv")

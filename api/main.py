@@ -1,6 +1,7 @@
+import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -13,13 +14,17 @@ service = ArtifactService(ROOT)
 tasks = ExperimentTasks(ROOT)
 
 app = FastAPI(title="CitiBike GNN Lab v2 API", version="2.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"],
+allowed_origins = [origin.strip() for origin in os.getenv(
+    "CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+).split(",") if origin.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=allowed_origins,
                    allow_methods=["*"], allow_headers=["*"])
 
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "dataset_available": service.raw_csv.exists()}
+    return {"status": "ok", "dataset_available": service.raw_csv.exists(),
+            "experiments_enabled": bool(os.getenv("EXPERIMENT_API_KEY"))}
 
 
 @app.get("/api/overview")
@@ -66,13 +71,29 @@ def station_detail(station_id: str):
     return {"station": station, "evaluation": error}
 
 
+@app.get("/api/stations/{station_id}/predictions")
+def station_predictions(station_id: str):
+    station = next((item for item in service.stations() if item["id"] == station_id), None)
+    predictions = service.station_predictions(station_id)
+    if not station:
+        raise HTTPException(404, "Station inconnue")
+    if not predictions:
+        raise HTTPException(404, "Prédictions par station indisponibles")
+    return {"station": station, "predictions": predictions}
+
+
 @app.get("/api/experiments")
 def experiments():
     return {"completed": service.experiments(), "tasks": tasks.all()}
 
 
 @app.post("/api/experiments", status_code=202)
-def launch_experiment(request: ExperimentRequest):
+def launch_experiment(request: ExperimentRequest, x_experiment_key: str | None = Header(None)):
+    expected_key = os.getenv("EXPERIMENT_API_KEY")
+    if not expected_key:
+        raise HTTPException(503, "Lancement distant désactivé")
+    if x_experiment_key != expected_key:
+        raise HTTPException(401, "Clé d'expérience invalide")
     return tasks.submit(request.dict())
 
 
@@ -86,7 +107,8 @@ def experiment_status(task_id: str):
 
 @app.get("/api/downloads/{filename}")
 def download(filename: str):
-    allowed = {"reproducible_comparison.csv", "predictions_horaires_test.csv",
+    allowed = {"reproducible_comparison.csv", "extended_comparison.csv",
+               "predictions_horaires_test.csv", "predictions_stations_test.csv",
                "erreurs_par_station.csv", "model_comparison.csv"}
     if filename not in allowed:
         raise HTTPException(404, "Export inconnu")
