@@ -59,13 +59,12 @@ class ArtifactService:
                  "gcn_gru_mae": float(row["mae_gcn_gru"]),
                  "naive_mae": float(row["mae_naif"])} for row in rows]
 
-    def _load_network(self):
+    def _build_network_from_raw(self):
         coordinates = defaultdict(list)
         station_names = defaultdict(Counter)
         edges = Counter()
         if not self.raw_csv.exists():
-            self._stations, self._edges = [], []
-            return
+            return [], []
         with self.raw_csv.open(encoding="utf-8-sig", newline="") as stream:
             for row in csv.DictReader(stream):
                 start, end = row.get("start_station_id"), row.get("end_station_id")
@@ -81,15 +80,47 @@ class ArtifactService:
                     station_names[end][end_name] += 1
                 if start and end and start != end:
                     edges[(start, end)] += 1
-        self._stations = [{"id": station,
-                           "name": station_names[station].most_common(1)[0][0]
-                           if station_names[station] else station,
-                           "lat": sum(p[0] for p in points) / len(points),
-                           "lng": sum(p[1] for p in points) / len(points),
-                           "observations": len(points)}
-                          for station, points in sorted(coordinates.items()) if station]
-        self._edges = [{"source": source, "target": target, "weight": weight}
-                       for (source, target), weight in edges.most_common()]
+        stations = [{"id": station,
+                     "name": station_names[station].most_common(1)[0][0]
+                     if station_names[station] else station,
+                     "lat": sum(p[0] for p in points) / len(points),
+                     "lng": sum(p[1] for p in points) / len(points),
+                     "observations": len(points)}
+                    for station, points in sorted(coordinates.items()) if station]
+        links = [{"source": source, "target": target, "weight": weight}
+                 for (source, target), weight in edges.most_common()]
+        return stations, links
+
+    def _load_network(self):
+        station_rows = self._rows(self.outputs / "stations.csv")
+        edge_rows = self._rows(self.outputs / "graph_edges.csv")
+        if station_rows and edge_rows:
+            self._stations = [{"id": row["id"], "name": row["name"],
+                               "lat": float(row["lat"]), "lng": float(row["lng"]),
+                               "observations": int(row["observations"])}
+                              for row in station_rows]
+            self._edges = [{"source": row["source"], "target": row["target"],
+                            "weight": int(row["weight"])} for row in edge_rows]
+            return
+        self._stations, self._edges = self._build_network_from_raw()
+
+    def export_network_artifacts(self):
+        stations, edges = self._build_network_from_raw()
+        if not stations or not edges:
+            raise FileNotFoundError(f"Jeu de données Citi Bike introuvable : {self.raw_csv}")
+        self.outputs.mkdir(parents=True, exist_ok=True)
+        for path, fields, rows in (
+            (self.outputs / "stations.csv",
+             ["id", "name", "lat", "lng", "observations"], stations),
+            (self.outputs / "graph_edges.csv",
+             ["source", "target", "weight"], edges),
+        ):
+            with path.open("w", encoding="utf-8", newline="") as stream:
+                writer = csv.DictWriter(stream, fieldnames=fields)
+                writer.writeheader()
+                writer.writerows(rows)
+        self._stations, self._edges = stations, edges
+        return {"stations": len(stations), "edges": len(edges)}
 
     def stations(self):
         if self._stations is None:

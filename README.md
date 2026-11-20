@@ -64,6 +64,11 @@ Download the official archive, verify its SHA-256 hash, extract it safely, and v
 
 Official source: `https://s3.amazonaws.com/tripdata/JC-202604-citibike-tripdata.zip`.
 
+The public repository includes only the aggregated spatial artifacts required by the demo:
+`outputs/stations.csv` contains the 216 real station coordinates and
+`outputs/graph_edges.csv` contains 6,362 weighted relationships. Individual raw trips are
+not published.
+
 ## Windows 11 installation
 
 Python 3.11 is recommended. PyTorch is not available for every newer Python release.

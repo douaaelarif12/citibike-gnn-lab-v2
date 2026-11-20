@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from api.main import app, service
+from api.main import app
 
 client = TestClient(app)
 
@@ -31,8 +31,7 @@ def test_experiment_launch_is_disabled_without_server_secret():
     assert response.status_code == 503
 
 
-@pytest.mark.skipif(not service.raw_csv.exists(), reason="Local Citi Bike CSV is not distributed")
-def test_graph_uses_real_named_stations_and_weighted_links():
+def test_graph_uses_published_real_stations_and_weighted_links():
     response = client.get("/api/graph", params={"limit": 10000})
     assert response.status_code == 200
     payload = response.json()

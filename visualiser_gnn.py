@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import torch
 
+from api.services import ArtifactService
 from src.preprocessing import load_data, build_activity, create_sequences, add_calendar_features
 from src.models import GCNGRU
 
@@ -169,11 +170,14 @@ def main():
         'mae_naif': np.abs(naive-y_test).mean(axis=0),
     }).to_csv(ROOT / 'outputs' / 'erreurs_par_station.csv', index=False)
 
+    network = ArtifactService(ROOT).export_network_artifacts()
+
     print('5/5 Terminé ! Résultats enregistrés dans outputs/figures/')
     for name in ['01_reel_vs_gnn.png', '02_comparaison_modeles.png',
                  '03_stations_actives.png', '04_erreurs_par_station.png']:
         print('  ', FIGURES / name)
     print('CSV : prédictions agrégées, prédictions par station, métriques locales et comparaison étendue')
+    print(f"Réseau public agrégé : {network['stations']} stations, {network['edges']} connexions")
 
 if __name__ == '__main__':
     main()
