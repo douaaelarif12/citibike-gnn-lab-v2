@@ -65,9 +65,10 @@ Download the official archive, verify its SHA-256 hash, extract it safely, and v
 Official source: `https://s3.amazonaws.com/tripdata/JC-202604-citibike-tripdata.zip`.
 
 The public repository includes only the aggregated spatial artifacts required by the demo:
-`outputs/stations.csv` contains the 216 real station coordinates and
-`outputs/graph_edges.csv` contains 6,362 weighted relationships. Individual raw trips are
-not published.
+
+- `outputs/stations.csv` contains the 216 real station coordinates.
+- `outputs/graph_edges.csv` contains 6,362 weighted relationships.
+- Individual raw trips are not published.
 
 ## Windows 11 installation
 
@@ -84,7 +85,7 @@ npm install
 cd ..
 ```
 
-Validation:
+## Validation
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
@@ -94,6 +95,8 @@ npm test
 npm run build
 npm run test:e2e
 ```
+
+## Running the application
 
 Start both applications and open the product in Google Chrome:
 
@@ -109,39 +112,79 @@ cd frontend
 npm run dev
 ```
 
-API docs: `http://127.0.0.1:8000/docs`  
-Application: `http://127.0.0.1:5173`
+API documentation:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+React application:
+
+```text
+http://127.0.0.1:5173
+```
 
 ## Experiments
+
+Example experiment:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\run_experiment.py --name gcn_gru_h12_huber --history 12 --loss huber --graph weighted --epochs 20 --seed 42
 ```
 
-The Experiments Lab submits the same real runner through a serialized background queue. It never displays planned configurations as completed runs. New checkpoints use a configuration/seed name and do not overwrite the original. Public deployments are read-only by default: `POST /api/experiments` is enabled only when a server-side `EXPERIMENT_API_KEY` is configured.
+The Experiments Lab submits the same real runner through a serialized background queue. It never displays planned configurations as completed runs.
+
+New checkpoints use a configuration and seed name and do not overwrite the original checkpoint.
+
+Public deployments are read-only by default. `POST /api/experiments` is enabled only when a server-side `EXPERIMENT_API_KEY` is configured.
 
 ## API
 
 | Endpoint | Purpose |
 |---|---|
+| `GET /api/health` | API, dataset and experiment-launch availability |
 | `GET /api/overview` | Verified KPIs and controlled metrics |
-| `GET /api/stations` | Coordinates derived from raw trips |
-| `GET /api/graph` | Observed weighted station links |
+| `GET /api/stations` | Real station names and coordinates |
+| `GET /api/graph` | Observed weighted station relationships |
 | `GET /api/models` | Available local checkpoints |
 | `GET /api/predictions` | Aligned hourly reference predictions |
 | `GET /api/stations/{id}` | Local station evaluation |
 | `GET /api/stations/{id}/predictions` | Real 108-hour station forecast series |
 | `GET /api/experiments` | Recorded experiment history |
-| `POST /api/experiments` | Protected background run; disabled publicly by default |
+| `POST /api/experiments` | Protected background run, disabled publicly by default |
 | `GET /api/downloads/{file}` | Allow-listed result exports |
 
 ## Interactive workspace
 
-- **Graph Explorer:** real station identifiers, names and averaged coordinates from the April trip file; weighted directed relations; minimum-trip filtering; spatial summaries; frequent-relation ranking; station search, map centering and interactive popups. OpenStreetMap attribution remains visible.
-- **Demand Forecasting:** network-wide or per-station observed, GCN–GRU, persistence and 24-hour seasonal series over selectable 24-hour, 48-hour or complete test windows.
-- **Model Comparison:** controlled MAE/RMSE comparison with metric-specific winners and measured deltas.
+- **Graph Explorer:** real station identifiers, names and averaged coordinates from the April trip file; weighted directed relationships; minimum-trip filtering; spatial summaries; frequent-relation ranking; station search; map centering; and interactive popups. OpenStreetMap attribution remains visible.
+- **Demand Forecasting:** network-wide or per-station observed, GCN–GRU, naive persistence and 24-hour seasonal series over selectable 24-hour, 48-hour or complete test windows.
+- **Model Comparison:** controlled MAE and RMSE comparison with metric-specific winners and measured differences.
 - **Station Analytics:** real station selection, coordinates, activity, local MAE comparison and 108-hour forecast series.
-- **Experiments Lab:** validated configuration and real run history; remote launches are disabled on public read-only deployments.
+- **Experiments Lab:** validated configuration and real run history. Remote launches are disabled on public read-only deployments.
+
+## Experimental results
+
+The figures below were generated from the real April 2026 Citi Bike test data.
+
+### Network-level demand forecasting
+
+The GCN–GRU captures the main temporal dynamics of total network activity.
+
+![Actual demand compared with GCN-GRU predictions](outputs/figures/01_reel_vs_gnn.png)
+
+### Station-level predictions
+
+At station level, the model captures recurring demand patterns but tends to smooth some sudden demand peaks.
+
+![GCN-GRU predictions for active stations](outputs/figures/03_stations_actives.png)
+
+### Error analysis by station
+
+Prediction errors vary according to station activity and demand volatility.
+
+![MAE for the 20 most active stations](outputs/figures/04_erreurs_par_station.png)
+
+> **Interpretation:** The GCN–GRU captures the overall temporal structure, but it underestimates some station-level demand peaks. On the controlled test split, the 24-hour seasonal baseline currently achieves the best global MAE and RMSE.
 
 ## Product screenshots
 
@@ -159,7 +202,15 @@ The Experiments Lab submits the same real runner through a serialized background
 
 ## Contributing
 
-Contributions are welcome when they preserve the chronological evaluation protocol and the distinction between verified and planned results. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+Contributions are welcome when they preserve:
+
+- The chronological evaluation protocol.
+- The distinction between verified and planned results.
+- The use of real data.
+- The security of public API deployments.
+- The licensing and attribution requirements of external providers.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
 ## Author
 
@@ -168,31 +219,46 @@ Contributions are welcome when they preserve the chronological evaluation protoc
 - [GitHub](https://github.com/douaaelarif12)
 - [LinkedIn](https://www.linkedin.com/in/douaa-e-71413223b/)
 
-## Structure
+## Project structure
 
 ```text
-api/                 FastAPI routes, schemas, artifact service, job queue
-frontend/            React + TypeScript + Vite + Tailwind dashboard
-scripts/             experiment and Windows development entry points
-src/                 preprocessing, graph, models, training, utilities
-tests/               leakage, tensor shape, model and API tests
-data/raw/            local dataset (not committed)
-outputs/              verified metrics, predictions, figures, checkpoints
-backups/              local pre-refactor snapshot
+api/                 FastAPI routes, schemas, artifact service and job queue
+frontend/            React, TypeScript, Vite and Tailwind dashboard
+scripts/             Data, experiment and Windows development entry points
+src/                 Preprocessing, graph, models, training and utilities
+tests/               Leakage, tensor shape, model and API tests
+data/raw/            Local dataset, not committed
+outputs/             Verified metrics, predictions, figures and spatial artifacts
+docs/screenshots/    Product interface screenshots
 ```
 
 ## Limitations
 
 - Only one month and one service area are represented.
 - Demand peaks and some local stations remain difficult to forecast.
-- Weather, events, holidays, bike availability, and capacity are absent.
+- Weather, events, holidays, bicycle availability and station capacity are absent.
 - Existing v1 results are single-seed results.
+- The GCN–GRU does not currently outperform the 24-hour seasonal baseline.
 - Multi-seed v2 conclusions require executing the experiment matrix; no unexecuted metrics are claimed.
+
+## Future improvements
+
+- Evaluate the models over multiple months and seasons.
+- Add weather, holidays and public-event information.
+- Include station capacity and bicycle availability.
+- Improve demand-peak modeling.
+- Run a controlled multi-seed experiment matrix.
+- Investigate stronger temporal and graph architectures.
+- Deploy a public read-only demonstration.
 
 ## Portfolio summary
 
-An end-to-end spatio-temporal forecasting platform combining PyTorch Geometric, GCN–GRU modeling, controlled baselines, experiment tracking, FastAPI, and an interactive React geospatial dashboard. The 24-hour seasonal baseline currently outperforms both GCN–GRU and naive persistence—an honest result that motivates multi-month data, contextual features, and stronger peak modeling.
+An end-to-end spatio-temporal forecasting platform combining PyTorch Geometric, GCN–GRU modeling, controlled baselines, experiment tracking, FastAPI, and an interactive React geospatial dashboard.
+
+The 24-hour seasonal baseline currently outperforms both GCN–GRU and naive persistence. This honest result motivates the use of multi-month data, contextual features and stronger demand-peak modeling.
 
 ## License and data
 
-The source code is available under the [MIT License](LICENSE). Follow Citi Bike's data terms and do not publish local checkpoints or raw datasets without verifying redistribution rights.
+The source code is available under the [MIT License](LICENSE).
+
+Follow Citi Bike's data terms and the map provider's attribution requirements. Do not publish local checkpoints or raw trip datasets without first verifying their redistribution rights.
